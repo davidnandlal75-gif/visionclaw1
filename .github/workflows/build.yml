@@ -1,0 +1,36 @@
+name: Build VisionClaw for iOS
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode Version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.4'
+
+      - name: Inject Gemini Live Secret Key
+        run: |
+          echo 'struct Secrets { static let geminiApiKey = "${{ secrets.GEMINI_API_KEY }}" }' > samples/CameraAccess/Secrets.swift
+
+      - name: Compile Apple Application Bundle
+        run: |
+          cd samples/CameraAccess
+          xcodebuild -project CameraAccess.xcodeproj -scheme CameraAccess -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO
+
+      - name: Package App Bundle into Installer (.ipa)
+        run: |
+          mkdir -p build/Payload
+          cp -R samples/CameraAccess/build/Release-iphoneos/CameraAccess.app build/Payload/
+          cd build && zip -r VisionClaw.ipa Payload
+
+      - name: Upload Finished Free App to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: VisionClaw-iOS-App
+          path: build/VisionClaw.ipa

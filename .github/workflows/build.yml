@@ -1,4 +1,4 @@
-name: Build VisionClaw for iOS
+name: Build Fixed VisionClaw for iOS
 on:
   workflow_dispatch:
 
@@ -14,23 +14,32 @@ jobs:
         with:
           xcode-version: '15.4'
 
-      - name: Inject Gemini Live Secret Key
+      - name: Configure Central Secrets
         run: |
-          echo 'struct Secrets { static let geminiApiKey = "${{ secrets.GEMINI_API_KEY }}" }' > samples/CameraAccess/Secrets.swift
+          cd samples/CameraAccess/CameraAccess
+          echo 'enum Secrets { static let geminiAPIKey = "${{ secrets.GEMINI_API_KEY }}"; static let openaiAPIKey = ""; static let openClawHost = ""; static let openClawPort = 18789; static let openClawHookToken = ""; static let openClawGatewayToken = ""; static let openClawRelayURL = "" }' > Secrets.swift
 
-      - name: Compile Apple Application Bundle
+      - name: Compile Application Bundle
         run: |
           cd samples/CameraAccess
-          xcodebuild -project CameraAccess.xcodeproj -scheme CameraAccess -configuration Release -sdk iphoneos SYMROOT=$PWD/build CODE_SIGNING_ALLOWED=NO
+          xcodebuild -project CameraAccess.xcodeproj \
+                     -scheme CameraAccess \
+                     -configuration Release \
+                     -sdk iphoneos \
+                     SYMROOT=$PWD/build \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
+                     CODE_SIGN_IDENTITY="" \
+                     PROVISIONING_PROFILE_SPECIFIER=""
 
-      - name: Package App Bundle into Installer (.ipa)
+      - name: Package App to IPA
         run: |
-          mkdir -p build/Payload
-          cp -R samples/CameraAccess/build/Release-iphoneos/CameraAccess.app build/Payload/
-          cd build && zip -r VisionClaw.ipa Payload
+          mkdir -p samples/CameraAccess/build/Payload
+          cp -R samples/CameraAccess/build/Release-iphoneos/CameraAccess.app samples/CameraAccess/build/Payload/
+          cd samples/CameraAccess/build && zip -r VisionClaw.ipa Payload
 
-      - name: Upload Finished Free App to GitHub
+      - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
         with:
           name: VisionClaw-iOS-App
-          path: build/VisionClaw.ipa
+          path: samples/CameraAccess/build/VisionClaw.ipa

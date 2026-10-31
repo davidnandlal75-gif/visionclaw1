@@ -21,7 +21,7 @@ jobs:
       - name: Compile Apple Application Bundle
         run: |
           cd samples/CameraAccess
-          xcodebuild -project CameraAccess.xcodeproj -scheme CameraAccess -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO
+          xcodebuild -project CameraAccess.xcodeproj -scheme CameraAccess -configuration Release -sdk iphoneos SYMROOT=$PWD/build CODE_SIGNING_ALLOWED=NO
 
       - name: Package App Bundle into Installer (.ipa)
         run: |
